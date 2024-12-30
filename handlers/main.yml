@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for docker-pihole
+- name: Stop resolver
+  ansible.builtin.service:
+    name: systemd-resolved
+    state: stopped
+
+- name: Restart resolver
+  ansible.builtin.service:
+    name: systemd-resolved
+    state: restarted
+
+- name: Docker service restart
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+    enabled: true
