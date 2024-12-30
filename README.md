@@ -1,7 +1,7 @@
 Role Name
 =========
 
-A brief description of the role goes here.
+A simple role to allow for deployment pihole docker container to a host
 
 Requirements
 ------------
