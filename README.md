@@ -44,7 +44,7 @@ geerlingguy.docker
 Example Playbook
 ----------------
 
-Simeple example playbook is as follows
+Simple example playbook is as follows
 
     - hosts: dns-servers
       vars:
