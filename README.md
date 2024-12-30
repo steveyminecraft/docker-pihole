@@ -6,26 +6,70 @@ A brief description of the role goes here.
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+This anisble role requires docker and docker compose to be installed on the host before deployment I recommend geerlingguy.docker to be used 
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+    dir_loc: '/opt/pihole' # installation location of the files for the container and the compose file
+    firewall_deploy: true # set to false if you do not want or use firewalld
+    firewall_itmes:
+      - dns
+      - http
+      - https
+    pihole_image: "pihole/pihole:2024.07.0" # current version of Pihole, set to latest if you want the newist version at all times
+    timezone: "Europe/London" # Select your local timezone
+    firewall_deploy: true # will ensure firewalld is install and configured
+    pihole_container_name: pihole
+
+    For full detials about the containers vars please see https://github.com/pi-hole/docker-pi-hole
+    pihole_environment_variables:
+      TZ: "{{ timezone }}"
+      FTLCONF_MAXDBDAYS: "180"
+      WEBPASSWORD: 'Intranet' # example value, change it and better use ansible-vault
+      PIHOLE_DNS_: "1.1.1.1;2606:4700:4700::1111"
+      REV_SERVER: "true"
+      REV_SERVER_CIDR: "192.168.56.0/24"
+      REV_SERVER_TARGET: "192.168.56.1"
+      REV_SERVER_DOMAIN: "test"
+      DHCP_ACTIVE: false
+      PIHOLE_DOMAIN: 'test'
+      WEBTHEME: "default-darker"
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+geerlingguy.docker
 
 Example Playbook
 ----------------
 
 Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+    - hosts: dns-servers
+      vars:
+        dir_loc: '/opt/pihole'
+        firewall_deploy: true
+        firewall_itmes:
+          - dns
+          - http
+          - https
+        pihole_image: "pihole/pihole:2024.07.0"
+        timezone: "Europe/London"
+        firewall_deploy: true # will ensure firewalld is install and configured
+        pihole_container_name: pihole
+        pihole_environment_variables:
+          TZ: "{{ timezone }}"
+          FTLCONF_MAXDBDAYS: "180"
+          WEBPASSWORD: 'Intranet' # example value, change it and better use ansible-vault
+          PIHOLE_DNS_: "1.1.1.1;2606:4700:4700::1111"
+          REV_SERVER: "true"
+          REV_SERVER_CIDR: "192.168.56.0/24"
+          REV_SERVER_TARGET: "192.168.56.1"
+          REV_SERVER_DOMAIN: "test"
+          DHCP_ACTIVE: false
+          PIHOLE_DOMAIN: 'test'
+          WEBTHEME: "default-darker"
 
 License
 -------
