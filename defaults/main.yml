@@ -57,7 +57,7 @@ pihole_environment_variables:
   FTLCONF_DNS_FQDN_REQUIRED: false  # Require Fully Qualified Domain Names for DNS queries
 
   #INTERFACE: #If you're trying to use DHCP with --net host mode then you may have to customize this or DNSMASQ_LISTENING.
-  WEB_PORT: {{ webport_http }} #This will break the 'webpage blocked' functionality of Pi-hole however it may help advanced setups like those running synology
+  WEB_PORT: "{{ webport_http }}" #This will break the 'webpage blocked' functionality of Pi-hole however it may help advanced setups like those running synology
   #WEB_BIND_ADDR: #Lighttpd's bind address.
   #SKIPGRAVITYONBOOT: Use this option to skip updating the Gravity Database when booting up the container
   #CORS_HOSTS: #List of domains/subdomains on which CORS is allowed. Wildcards are not supported
