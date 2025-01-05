@@ -21,6 +21,8 @@ Role Variables
     timezone: "Europe/London" # Select your local timezone
     firewall_deploy: true # will ensure firewalld is install and configured
     pihole_container_name: pihole
+    webport_http: '80' # Port for HTTP-Requests to Webinterface.
+    webport_https: '443' # Port for HTTPS-DoH Requests.
 
     For full detials about the containers vars please see https://github.com/pi-hole/docker-pi-hole
     pihole_environment_variables:
