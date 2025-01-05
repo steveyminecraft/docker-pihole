@@ -3,7 +3,7 @@
 # defaults file for docker-pihole
 dir_loc: '/opt/pihole'
 firewall_deploy: true
-firewall_itmes:
+firewall_items:
   - dns
   - http
   - https
