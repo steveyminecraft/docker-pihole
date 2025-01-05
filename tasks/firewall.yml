@@ -1,15 +1,17 @@
 ---
 - name: Default firewalld rules
   ansible.posix.firewalld:
-    service: "{{ item }}"
+    service: "{{ item.service }}"
+    port: "{{ item.port }}"
     state: enabled
     permanent: true
     immediate: true
     zone: public
   with_items:
-    - http
-    - https
-    - dns
+    - { service: 'http', port: '{{ webport_http }}/tcp' }
+    - { service: 'https', port: '{{ webport_https }}/tcp' }
+    - { service: 'dns', port: '53/tcp' }
+    - { service: 'dns', port: '53/udp' }
 
 - name: Bootps firewalld rule
   ansible.posix.firewalld:
