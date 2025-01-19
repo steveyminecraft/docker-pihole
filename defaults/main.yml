@@ -3,12 +3,6 @@
 # defaults file for docker-pihole
 dir_loc: '/opt/pihole'
 firewall_deploy: true
-firewall_items:
-  - { service: 'http', port: '{{ webport_http }}/tcp' }
-  - { service: 'https', port: '{{ webport_https }}/tcp' }
-  - { service: 'dns', port: '53/tcp' }
-  - { service: 'dns', port: '53/udp' }
-
 pihole_environment_variables:
   # refernce https://github.com/pi-hole/docker-pi-hole
   # Some more situational and uncommon vars are lefted 
