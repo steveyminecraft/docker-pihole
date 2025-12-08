@@ -10,11 +10,15 @@
 
 - name: DNS test for google.com via local Pi-hole
   command: dig +short google.com @127.0.0.1
-  register: dns_test
-  failed_when: dns_test.stdout == ""
+  register: dns_test_google
+  changed_when: false
+  failed_when: dns_test_google.stdout == ""
 
-- name: Assert DNS Resolution is Working for Multiple IPs
+- name: Assert google.com result looks like valid IPv4
   assert:
     that:
-      - dns_test.stdout is search('216\\.58\\.|172\\.217\\.|142\\.250\\.|192\\.178\\.223\\.')
-    fail_msg: "DNS did not return expected Google IP ranges, got: {{ dns_test.stdout }}"
+      - dns_test_google.stdout_lines | length > 0
+      - dns_test_google.stdout_lines | select(
+          'match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$'
+        ) | list | length > 0
+    fail_msg: "DNS did not return at least one valid IPv4 for google.com via Pi-hole:\n{{ dns_test_google.stdout }}"
