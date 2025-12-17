@@ -17,4 +17,3 @@ all:
       FTLCONF_dns_listeningMode: "all"
       # Controls if the port is opened or not
       DHCP_ACTIVE: false
-
