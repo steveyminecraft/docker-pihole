@@ -6,7 +6,7 @@ A simple role to allow for deployment pihole docker container to a host
 Requirements
 ------------
 
-This anisble role requires docker and docker compose to be installed on the host before deployment I recommend geerlingguy.docker to be used 
+Docker needs to be installed on the host
 
 Role Variables
 --------------
