@@ -1,7 +1,9 @@
 ---
 - name: Check if Pi-hole container is running
-  command: docker ps --filter "name=pihole" --filter "status=running"
-  register: container_status
+  ansible.builtin.command: docker ps --filter name=pihole
+  register: pihole_status
+  changed_when: false
+  failed_when: pihole_status.rc != 0
 
 - name: Fail if Pi-hole container is not running
   fail:

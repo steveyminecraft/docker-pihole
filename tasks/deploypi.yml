@@ -11,6 +11,9 @@
   template:
     src: docker-compose.yml.j2
     dest: "{{ dir_loc }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: '0755'
 
 - name: Pull docker image
   community.docker.docker_image_pull:
@@ -19,12 +22,17 @@
 
 # Fix for resolve conf on ubuntu
 - name: Configure systemd-resolved for Pi-hole
-  block:
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - ansible_facts['distribution'] == 'Ubuntu'
+    - firewall_deploy | bool
 
-    - name: Stop resolver
-      ansible.builtin.service:
-        name: systemd-resolved
-        state: stopped
+  block:
+    - name: Disable stub listener
+      ansible.builtin.replace:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#?DNSStubListener=.*'
+        replace: 'DNSStubListener=no'
 
     - name: Disable DNSStubListener in systemd-resolved configuration
       lineinfile:
@@ -48,7 +56,6 @@
       ansible.builtin.service:
         name: systemd-resolved
         state: restarted
-  when: ansible_facts['os_family'] == 'Debian' and ansible_facts['distribution'] == 'Ubuntu'
 
 # restart docker to ensure IP tables are valid after install
 - name: Restart docker
@@ -57,6 +64,7 @@
     state: restarted
 
 - name: Start Pi-hole service
-  command: docker compose up -d
-  args:
-    chdir: "{{ dir_loc }}"
+  ansible.builtin.command: docker start {{ pihole_container_name }}
+  register: pihole_start
+  changed_when: "'Started' in pihole_start.stdout"
+  failed_when: pihole_start.rc != 0

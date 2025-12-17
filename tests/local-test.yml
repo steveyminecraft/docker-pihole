@@ -1,0 +1,21 @@
+---
+- name: Local docker-pihole test
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: ..
+      vars:
+        dir_loc: /opt/pihole-test
+        firewall_deploy: false
+        pihole_container_name: pihole-test
+        pihole_image: pihole/pihole:latest
+        timezone: Europe/London
+        pihole_environment_variables:
+          TZ: 'Europe/London'
+          # Set a password to access the web interface. Not setting one will result in a random password being assigned
+          FTLCONF_webserver_api_password: 'Testing 101'
+          # If using Docker's default `bridge` network setting the dns listening mode should be set to 'ALL'
+          FTLCONF_dns_listeningMode: 'ALL'
