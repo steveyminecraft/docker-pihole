@@ -5,26 +5,34 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: directory
-    mode: 0755
+    mode: '0755'
 
 - name: Deploy Docker Compose file
   template:
     src: docker-compose.yml.j2
     dest: "{{ dir_loc }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: '0755'
 
 - name: Pull docker image
   community.docker.docker_image_pull:
     name: "{{ pihole_image }}"
     platform: "{{ ansible_architecture }}"
 
-#Fix for resolve conf on ubuntu
+# Fix for resolve conf on ubuntu
 - name: Configure systemd-resolved for Pi-hole
-  block:
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - ansible_facts['distribution'] == 'Ubuntu'
+    - firewall_deploy | bool
 
-    - name: Stop resolver
-      ansible.builtin.service:
-        name: systemd-resolved
-        state: stopped
+  block:
+    - name: Disable stub listener
+      ansible.builtin.replace:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#?DNSStubListener=.*'
+        replace: 'DNSStubListener=no'
 
     - name: Disable DNSStubListener in systemd-resolved configuration
       lineinfile:
@@ -48,7 +56,6 @@
       ansible.builtin.service:
         name: systemd-resolved
         state: restarted
-  when: ansible_facts['os_family'] == 'Debian' and ansible_facts['distribution'] == 'Ubuntu'
 
 # restart docker to ensure IP tables are valid after install
 - name: Restart docker
@@ -56,7 +63,16 @@
     name: docker
     state: restarted
 
-- name: Start Pi-hole service
-  command: docker compose up -d
+- name: Start Pi-hole service (docker compose)
+  ansible.builtin.command:
+    cmd: >-
+      docker compose
+      -f {{ pihole_compose_file | default(dir_loc ~ '/docker-compose.yml') }}
+      up -d
   args:
     chdir: "{{ dir_loc }}"
+  register: pihole_compose_up
+  changed_when: >-
+    pihole_compose_up.stdout is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+    or pihole_compose_up.stderr is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+  failed_when: pihole_compose_up.rc != 0

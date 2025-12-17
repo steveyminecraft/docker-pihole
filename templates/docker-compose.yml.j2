@@ -15,6 +15,8 @@ services:
       - {{ dir_loc }}/etc/dnsmasq.d:/etc/dnsmasq.d
     cap_add:
       - NET_ADMIN
+      - SYS_TIME
+      - SYS_NICE
     ports:
       - "53:53/tcp"
       - "53:53/udp"

@@ -1,4 +1,5 @@
-#SPDX-License-Identifier: MIT-0
+---
+# SPDX-License-Identifier: MIT-0
 galaxy_info:
   author: Richard Laing
   description: Deployment of Pi-Hole inside a docker contaienr
@@ -22,7 +23,7 @@ galaxy_info:
   # If this a Container Enabled role, provide the minimum Ansible Container version.
   # min_ansible_container_version:
 
-  galaxy_tags: 
+  galaxy_tags:
     - pihole
     - dnsserver
 
@@ -34,6 +35,5 @@ galaxy_info:
     #       Maximum 20 tags per role.
 
 dependencies:
-  - geerlingguy.docker
-  # List your role dependencies here, one per line. Be sure to remove the '[]' above,
-  # if you add dependencies to this list.
+# List your role dependencies here, one per line. Be sure to remove the '[]' above,
+# if you add dependencies to this list.

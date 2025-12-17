@@ -21,14 +21,14 @@
     zone: public
   with_items:
     - bootps
-  when: pihole_environment_variables.REV_SERVER == true
+  when: pihole_environment_variables.REV_SERVER
 
 - name: Check if DHCP is enabled
   set_fact:
     pihole_dhcp_enabled: "{{ pihole_environment_variables.DHCP_ACTIVE | lower == 'true' }}"
 
 - name: Allow DHCP port in the firewall (if enabled)
-  firewalld:
+  ansible.posix.firewalld:
     service: dhcp
     permanent: true
     state: enabled

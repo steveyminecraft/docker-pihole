@@ -1,0 +1,42 @@
+---
+use_default_rules: true
+profile: min
+
+exclude_paths:
+  - .cache/
+  - .github/
+  - .ansible/
+  - molecule/
+  - .env/
+
+skip_list:
+  # Too noisy for mature roles
+  - fqcn-builtins
+  - no-handler
+
+warn_list:
+  # Warn, don't fail CI
+  - var-naming
+  - experimental           # New rules can be flaky
+  - risky-file-permissions # Good signal but often intentional
+  - ignore-errors          # Worth seeing but not always fatal
+
+enable_list:
+  # Explicitly enable some good hygiene checks
+  - yaml                   # YAML sanity
+  - role-name              # Galaxy compatibility
+  - meta                   # meta/main.yml correctness
+  - schema                 # Validates task/play schema
+
+offline: true              # CI-friendly (no galaxy downloads)
+verbosity: 1               # Slightly more context in CI logs
+
+profile: production
+exclude_paths:
+  - .github/
+  - .cache/
+  - .ansible/
+  - .molecule/
+skip_list:
+  - fqcn-builtins
+  - var-naming
