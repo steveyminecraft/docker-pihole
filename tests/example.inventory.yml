@@ -15,3 +15,6 @@ all:
       # Example value, change it and better use ansible-vault
       FTLCONF_webserver_api_password: 'Intranet'
       FTLCONF_dns_listeningMode: "all"
+      # Controls if the port is opened or not
+      DHCP_ACTIVE: false
+
