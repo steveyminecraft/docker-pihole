@@ -17,7 +17,7 @@
     name: "{{ pihole_image }}"
     platform: "{{ ansible_architecture }}"
 
-#Fix for resolve conf on ubuntu
+# Fix for resolve conf on ubuntu
 - name: Configure systemd-resolved for Pi-hole
   block:
 

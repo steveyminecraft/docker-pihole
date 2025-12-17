@@ -9,7 +9,7 @@
   when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 
 - name: Redhat setup tasks
-  include_tasks: redhat.yml  
+  include_tasks: redhat.yml
   when: ansible_distribution == 'Rocky' or ansible_distribution == 'Red Hat Enterprise Linux'
 
 - name: Run pre-deployment tasks

@@ -1,15 +1,17 @@
+---
 all:
   hosts:
     vagrant-pihole-01:
   vars:
     dir_loc: '/opt/pihole'
-    firewall_deploy: true
     pihole_image: "pihole/pihole:latest"
     timezone: "Europe/London"
-    firewall_deploy: true # will ensure firewalld is install and configured
+    # Will ensure firewalld is install and configured
+    firewall_deploy: true
     pihole_container_name: pihole
     pihole_environment_variables:
       TZ: "{{ timezone }}"
       FTLCONF_MAXDBDAYS: "180"
-      FTLCONF_webserver_api_password: 'Intranet' # example value, change it and better use ansible-vault
+      # Example value, change it and better use ansible-vault
+      FTLCONF_webserver_api_password: 'Intranet'
       FTLCONF_dns_listeningMode: "all"
