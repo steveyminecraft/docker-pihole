@@ -1,14 +1,16 @@
 ---
 - name: Check if Pi-hole container is running
-  ansible.builtin.command: docker ps --filter name=pihole
+  ansible.builtin.command: docker ps --filter "name={{ pihole_container_name }}" --format "{{'{{'}}.Names{{'}}'}}"
   register: pihole_status
   changed_when: false
   failed_when: pihole_status.rc != 0
 
-- name: Fail if Pi-hole container is not running
-  fail:
-    msg: "Pi-hole container is not running."
-  when: container_status.stdout_lines | length == 0
+- name: Assert Pi-hole container is running
+  ansible.builtin.assert:
+    that:
+      - pihole_status.stdout_lines | length > 0
+    fail_msg: "Pi-hole container is not running."
+    success_msg: "Pi-hole container is running."
 
 - name: DNS test for google.com via local Pi-hole
   command: dig +short google.com @127.0.0.1
