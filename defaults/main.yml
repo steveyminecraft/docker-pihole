@@ -11,7 +11,9 @@ pihole_environment_variables:
   FTLCONF_webserver_api_password: 'Testing 101'
   # If using Docker's default `bridge` network setting the dns listening mode should be set to 'ALL'
   FTLCONF_dns_listeningMode: 'ALL'
-  # Volumes store your data between container upgrades
+  # controls if required port is opened
+  DHCP_ACTIVE: false
+
 
 webport_http: '80'
 webport_https: '443'
