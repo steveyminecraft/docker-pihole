@@ -63,8 +63,16 @@
     name: docker
     state: restarted
 
-- name: Start Pi-hole service
-  ansible.builtin.command: docker start {{ pihole_container_name }}
-  register: pihole_start
-  changed_when: "'Started' in pihole_start.stdout"
-  failed_when: pihole_start.rc != 0
+- name: Start Pi-hole service (docker compose)
+  ansible.builtin.command:
+    cmd: >-
+      docker compose
+      -f {{ pihole_compose_file | default(dir_loc ~ '/docker-compose.yml') }}
+      up -d
+  args:
+    chdir: "{{ dir_loc }}"
+  register: pihole_compose_up
+  changed_when: >-
+    pihole_compose_up.stdout is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+    or pihole_compose_up.stderr is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+  failed_when: pihole_compose_up.rc != 0

@@ -13,7 +13,9 @@ pihole_environment_variables:
   FTLCONF_dns_listeningMode: 'ALL'
   # controls if required port is opened
   DHCP_ACTIVE: false
-
+  REV_SERVER: false
+  REV_SERVER_CIDR: "192.168.56.0/24"
+  REV_SERVER_TARGET: "192.168.56.1"
 
 webport_http: '80'
 webport_https: '443'
