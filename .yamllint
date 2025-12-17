@@ -6,4 +6,9 @@ rules:
     max: 150
     level: warning
 
-ignore-from-file: .gitignore
+ignore:
+  - /molecule
+  - /env
+  - .ansible
+  - .git
+  - .github
