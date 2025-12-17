@@ -5,7 +5,7 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: directory
-    mode: 0755
+    mode: '0755'
 
 - name: Deploy Docker Compose file
   template:
