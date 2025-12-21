@@ -1,7 +1,7 @@
 ---
 - name: Create pihole directory
   file:
-    path: "/home/{{ ansible_user }}/pihole"
+    path: "{{ pihole_compose_dir }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: directory
@@ -10,10 +10,10 @@
 - name: Deploy Docker Compose file
   template:
     src: docker-compose.yml.j2
-    dest: "{{ dir_loc }}/docker-compose.yml"
-    owner: root
-    group: root
-    mode: '0755'
+    dest: "{{ pihole_compose_dir }}/docker-compose.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
 
 - name: Pull docker image
   community.docker.docker_image_pull:
@@ -67,10 +67,10 @@
   ansible.builtin.command:
     cmd: >-
       docker compose
-      -f {{ pihole_compose_file | default(dir_loc ~ '/docker-compose.yml') }}
+      -f {{ pihole_compose_file | default(pihole_compose_dir ~ '/docker-compose.yml') }}
       up -d
   args:
-    chdir: "{{ dir_loc }}"
+    chdir: "{{ pihole_compose_dir }}"
   register: pihole_compose_up
   changed_when: >-
     pihole_compose_up.stdout is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
