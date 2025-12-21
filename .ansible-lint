@@ -1,6 +1,6 @@
 ---
 use_default_rules: true
-profile: min
+profile: production
 
 exclude_paths:
   - .cache/
@@ -30,13 +30,3 @@ enable_list:
 
 offline: true              # CI-friendly (no galaxy downloads)
 verbosity: 1               # Slightly more context in CI logs
-
-profile: production
-exclude_paths:
-  - .github/
-  - .cache/
-  - .ansible/
-  - .molecule/
-skip_list:
-  - fqcn-builtins
-  - var-naming

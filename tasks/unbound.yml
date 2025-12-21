@@ -1,3 +1,4 @@
+---
 - name: Check if Unbound container exists and is running
   ansible.builtin.command:
     cmd: docker inspect -f '{{ "{{" }}.State.Running{{ "}}" }}' "{{ unbound_container_name | default('unbound') }}"

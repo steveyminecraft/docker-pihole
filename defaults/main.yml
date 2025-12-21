@@ -19,3 +19,8 @@ pihole_environment_variables:
 
 webport_http: '80'
 webport_https: '443'
+# Compose paths
+pihole_compose_file: "{{ pihole_compose_dir }}/docker-compose.yml"
+
+# Container name (used by unbound.yml checks)
+pihole_container_name: "pihole"
