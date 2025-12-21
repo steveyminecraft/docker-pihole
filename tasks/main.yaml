@@ -22,5 +22,8 @@
   include_tasks: firewall.yml
   when: firewall_deploy | lower == 'true'
 
+- name: Added Unbound
+  include_tasks: unbound.yml
+
 - name: Verify Pi-hole deployment
   include_tasks: verify.yml
