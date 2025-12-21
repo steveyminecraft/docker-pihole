@@ -1,0 +1,111 @@
+- name: Check if Unbound container exists and is running
+  ansible.builtin.command:
+    cmd: docker inspect -f '{{ "{{" }}.State.Running{{ "}}" }}' "{{ unbound_container_name | default('unbound') }}"
+  register: unbound_running
+  changed_when: false
+  failed_when: false
+
+- name: Set fact if Unbound is running
+  ansible.builtin.set_fact:
+    pihole_unbound_present: "{{ (unbound_running.rc == 0) and (unbound_running.stdout | trim == 'true') }}"
+
+- name: Ensure shared external docker network exists (dns_net)
+  ansible.builtin.command:
+    cmd: docker network inspect "{{ pihole_unbound_network_name | default('dns_net') }}"
+  register: dns_net_inspect
+  changed_when: false
+  failed_when: false
+  when: pihole_unbound_present
+
+- name: Create shared external docker network if missing
+  ansible.builtin.command:
+    cmd: docker network create "{{ pihole_unbound_network_name | default('dns_net') }}"
+  register: dns_net_create
+  changed_when: dns_net_create.rc == 0
+  failed_when: dns_net_create.rc != 0
+  when: pihole_unbound_present and dns_net_inspect.rc != 0
+
+# Ensure the compose template uses the SAME network name (you already updated template to use unbound_network_name)
+# If you template compose, you don't need to edit it in-place; just set vars and re-render/re-up.
+
+- name: Enable Pi-hole upstream to Unbound (set env vars)
+  ansible.builtin.set_fact:
+    pihole_environment_variables: >-
+      {{
+        (pihole_environment_variables | default({}))
+        | combine({
+            'PIHOLE_DNS_': (pihole_unbound_upstream | default('unbound#5335')),
+            'DNSMASQ_LISTENING': 'all'
+          }, recursive=True)
+      }}
+  when: pihole_unbound_present
+
+- name: Re-render docker-compose.yml for Pi-hole (with Unbound integration)
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ pihole_compose_file }}"
+    mode: "0644"
+  when: pihole_unbound_present
+  notify: Restart pihole stack
+
+- name: Apply compose changes (Pi-hole)
+  ansible.builtin.command:
+    cmd: docker compose -f "{{ pihole_compose_file }}" up -d
+  args:
+    chdir: "{{ pihole_compose_dir }}"
+  register: pihole_compose_up
+  changed_when: >
+    pihole_compose_up.stdout is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+    or pihole_compose_up.stderr is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+  failed_when: pihole_compose_up.rc != 0
+  when: pihole_unbound_present
+
+# Wait for Pi-hole to be ready (healthcheck is available in your container)
+- name: Wait until Pi-hole is healthy
+  ansible.builtin.command: >
+    docker inspect -f '{{ "{{" }}.State.Health.Status{{ "}}" }}'
+    {{ pihole_container_name | default('pihole') }}
+  register: pihole_health
+  retries: 30
+  delay: 2
+  until: pihole_health.stdout | trim == "healthy"
+  changed_when: false
+  when: pihole_unbound_present
+
+# Verify name resolution for Unbound in the shared network
+- name: Verify Pi-hole can resolve Unbound by container name
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc "getent hosts unbound"
+  register: pihole_resolve_unbound
+  changed_when: false
+  failed_when: pihole_resolve_unbound.rc != 0
+  when: pihole_unbound_present
+
+# Verify Unbound answers from inside Pi-hole container
+- name: Verify Unbound answers DNS queries (from Pi-hole container)
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc "dig @unbound -p {{ pihole_unbound_port | default(5335) }} cloudflare.com +short"
+  register: unbound_dns_test
+  changed_when: false
+  failed_when: >
+    (unbound_dns_test.stdout_lines
+      | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+      | list
+      | length) == 0
+  when: pihole_unbound_present
+
+# Verify Pi-hole answers (through its local DNS)
+- name: Verify Pi-hole answers DNS queries (A record exists)
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc "dig @127.0.0.1 -p 53 cloudflare.com +short"
+  register: pihole_dns_test
+  changed_when: false
+  failed_when: >
+    (pihole_dns_test.stdout_lines
+      | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+      | list
+      | length) == 0
+  when: pihole_unbound_present
