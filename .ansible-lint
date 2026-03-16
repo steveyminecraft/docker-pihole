@@ -17,9 +17,9 @@ skip_list:
 warn_list:
   # Warn, don't fail CI
   - var-naming
-  - experimental           # New rules can be flaky
-  - risky-file-permissions # Good signal but often intentional
-  - ignore-errors          # Worth seeing but not always fatal
+  - experimental
+  - risky-file-permissions
+  - ignore-errors
 
 enable_list:
   # Explicitly enable some good hygiene checks
