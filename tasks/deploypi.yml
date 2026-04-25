@@ -1,6 +1,6 @@
 ---
 - name: Create pihole directory
-  file:
+  ansible.builtin.file:
     path: "{{ pihole_compose_dir }}"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
@@ -8,7 +8,7 @@
     mode: '0755'
 
 - name: Deploy Docker Compose file
-  template:
+  ansible.builtin.template:
     src: docker-compose.yml.j2
     dest: "{{ pihole_compose_dir }}/docker-compose.yml"
     owner: "{{ ansible_user }}"
@@ -35,19 +35,19 @@
         replace: 'DNSStubListener=no'
 
     - name: Disable DNSStubListener in systemd-resolved configuration
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/systemd/resolved.conf
         regexp: '^#?DNSStubListener='
         line: 'DNSStubListener=no'
         backup: true
 
     - name: Remove /etc/resolv.conf if it exists
-      file:
+      ansible.builtin.file:
         path: /etc/resolv.conf
         state: absent
 
     - name: Create symlink for resolv.conf
-      file:
+      ansible.builtin.file:
         src: /run/systemd/resolve/resolv.conf
         dest: /etc/resolv.conf
         state: link

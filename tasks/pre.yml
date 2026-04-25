@@ -1,6 +1,6 @@
 ---
 - name: Create Pi-hole configuration directories
-  file:
+  ansible.builtin.file:
     path: '{{ dir_loc }}/{{ item }}'
     state: directory
     owner: root

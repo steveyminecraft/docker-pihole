@@ -13,13 +13,14 @@
     success_msg: "Pi-hole container is running."
 
 - name: DNS test for google.com via local Pi-hole
-  command: dig +short google.com @127.0.0.1
+  ansible.builtin.command:
+    cmd: dig +short google.com @127.0.0.1
   register: dns_test_google
   changed_when: false
   failed_when: dns_test_google.stdout == ""
 
 - name: Assert google.com result looks like valid IPv4
-  assert:
+  ansible.builtin.assert:
     that:
       - dns_test_google.stdout_lines | length > 0
       - dns_test_google.stdout_lines | select(
