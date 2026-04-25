@@ -18,7 +18,7 @@
 - name: Pull docker image
   community.docker.docker_image_pull:
     name: "{{ pihole_image }}"
-    platform: "{{ ansible_architecture }}"
+    platform: "{{ ansible_facts['architecture'] }}"
 
 # Fix for resolve conf on ubuntu
 - name: Configure systemd-resolved for Pi-hole

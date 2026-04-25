@@ -3,6 +3,8 @@
 # defaults file for docker-pihole
 # Full list can be found here https://hub.docker.com/r/pihole/pihole
 dir_loc: '/opt/pihole'
+# Where docker-compose.yml lives; inventory often overrides to match pihole_compose_dir.
+pihole_compose_dir: "{{ dir_loc }}"
 firewall_deploy: true
 pihole_environment_variables:
   # Set the appropriate timezone for your location (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), e.g:

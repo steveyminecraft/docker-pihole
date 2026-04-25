@@ -3,11 +3,14 @@ use_default_rules: true
 profile: production
 
 exclude_paths:
+  - .env/
   - .cache/
   - .github/
   - .ansible/
+  - env/
   - molecule/
-  - .env/
+  - .venv/
+  - venv/
 
 skip_list:
   # Too noisy for mature roles
@@ -17,9 +20,9 @@ skip_list:
 warn_list:
   # Warn, don't fail CI
   - var-naming
-  - experimental
-  - risky-file-permissions
-  - ignore-errors
+  - experimental            # New rules can be flaky
+  - risky-file-permissions  # Good signal but often intentional
+  - ignore-errors           # Worth seeing but not always fatal
 
 enable_list:
   # Explicitly enable some good hygiene checks
