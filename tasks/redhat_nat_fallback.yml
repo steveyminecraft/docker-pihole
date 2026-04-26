@@ -11,7 +11,15 @@
     lock_timeout: 300
   when: ansible_facts['os_family'] == 'RedHat'
 
-# Subnet JSON parsing lives in files/docker_network_subnet_print.py (short shell lines for lint).
+# Copy the helper to the *guest* (controller role_path in a remote shell is wrong for Galaxy installs).
+# Same logic as files/docker_network_subnet_print.py; roles/docker uses an inline -c to avoid a copy.
+- name: Install Docker network subnet JSON helper on target
+  ansible.builtin.copy:
+    src: docker_network_subnet_print.py
+    dest: "{{ pihole_compose_dir }}/docker_network_subnet_print.py"
+    mode: "0755"
+  when: ansible_facts['os_family'] == 'RedHat'
+
 - name: Discover Docker IPv4 subnets (dynamic)
   ansible.builtin.shell:
     cmd: |
@@ -19,6 +27,7 @@
       if ! command -v docker >/dev/null 2>&1; then
         exit 0
       fi
+      H='{{ pihole_compose_dir }}/docker_network_subnet_print.py'
       declare -A seen=()
       while read -r id; do
         [ -z "${id:-}" ] && continue
@@ -26,8 +35,7 @@
           [ -z "${cidr:-}" ] && continue
           [[ "$cidr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || continue
           seen["$cidr"]=1
-        done < <(docker network inspect "$id" 2>/dev/null |
-          python3 "{{ role_path }}/files/docker_network_subnet_print.py" 2>/dev/null || true)
+        done < <(docker network inspect "$id" 2>/dev/null | python3 "$H" 2>/dev/null || true)
       done < <(docker network ls -q 2>/dev/null || true)
       for k in "${!seen[@]}"; do
         printf '%s\n' "$k"

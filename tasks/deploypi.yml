@@ -60,7 +60,8 @@
         state: restarted
       failed_when: false
 
-# restart docker to ensure IP tables are valid after install
+# Bounce Docker so daemon picks up /etc/docker/daemon.json (e.g. iptables: false) before we bring up
+# project networks. EL bridge egress still needs the nft MASQ block after `compose up` (redhat_nat_fallback).
 - name: Restart docker
   ansible.builtin.service:
     name: docker
