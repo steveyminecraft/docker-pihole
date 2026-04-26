@@ -10,8 +10,10 @@ dir_loc: '/opt/pihole'
 pihole_compose_dir: "{{ dir_loc }}"
 firewall_deploy: false
 
-# EL Docker NAT fallback after compose (see tasks/redhat_nat_fallback.yml); match ansible-pihole docker role.
-docker_manage_iptables: true
+# Must stay aligned with roles/docker/defaults — same variable is used in both roles; last role used to
+# win in defaults, so a literal `true` here overwrote the docker role and broke EL/Vagrant bridge egress.
+# EL Docker NAT fallback after compose (see tasks/redhat_nat_fallback.yml).
+docker_manage_iptables: "{{ not (vagrant_env | default(false) | bool) }}"
 docker_el_nat_fallback: true
 
 # Opt-in Rocky/EL lab mode: stop firewalld, install bind-utils (dig on the host), run Pi-hole
