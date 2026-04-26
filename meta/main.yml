@@ -1,18 +1,21 @@
 ---
 galaxy_info:
+  role_name: pihole
   author: richardlaing00
   description: Deploy Pi-hole using Docker
   license: MIT
-  min_ansible_version: "2.16"
-
+  min_ansible_version: "2.14"
   platforms:
     - name: Ubuntu
-      versions:
-        - noble
-
-    # Rocky Linux 10 is in the EL family, but Galaxy schema does not accept "10" here.
+      versions: ["all"]
+    - name: Debian
+      versions: ["all"]
     - name: EL
-      versions:
-        - all
+      versions: ["all"]
+  galaxy_tags:
+    - pihole
+    - docker
+    - dns
+    - adblock
 
 dependencies: []

@@ -1,0 +1,11 @@
+---
+# Syntax check only; role name must match the repository directory (docker-pihole) when
+# ANSIBLE_ROLES_PATH includes the parent of this repo.
+- name: docker-pihole role syntax
+  hosts: local
+  gather_facts: false
+  become: true
+  roles:
+    - role: docker-pihole
+      vars:
+        firewall_deploy: "false"

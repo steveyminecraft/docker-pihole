@@ -174,3 +174,6 @@ cython_debug/
 .env.leave
 .vagrant
 .tool-versions
+
+# ansible-galaxy collection install (CI / local)
+.ansible/

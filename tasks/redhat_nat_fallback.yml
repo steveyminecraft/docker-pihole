@@ -1,0 +1,67 @@
+---
+# With "iptables": false Docker does not add MASQUERADE. Discover each bridge IPv4 subnet
+# (docker network inspect JSON) and add matching masquerade rules.
+#
+# On EL9+ with iptables-nf_tables, `iptables -j MASQUERADE` often fails (xt_MASQUERADE absent);
+# use a dedicated nftables table instead. No firewall-cmd --reload.
+- name: Ensure nftables is installed for NAT fallback (RedHat)
+  ansible.builtin.dnf:
+    name: nftables
+    state: present
+    lock_timeout: 300
+  when: ansible_facts['os_family'] == 'RedHat'
+
+# One-line python avoids Docker Go `{{...}}` (Jinja conflict).
+- name: Discover Docker IPv4 subnets (dynamic)
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      if ! command -v docker >/dev/null 2>&1; then
+        exit 0
+      fi
+      declare -A seen=()
+      while read -r id; do
+        [ -z "${id:-}" ] && continue
+        while IFS= read -r cidr; do
+          [ -z "${cidr:-}" ] && continue
+          [[ "$cidr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || continue
+          seen["$cidr"]=1
+        done < <(docker network inspect "$id" 2>/dev/null | python3 -c 'import json,sys; raw=sys.stdin.read(); data=json.loads(raw) if raw.strip() else []; [print(c["Subnet"]) for n in data for c in (n.get("IPAM") or {}).get("Config") or [] if c.get("Subnet")]' 2>/dev/null || true)
+      done < <(docker network ls -q 2>/dev/null || true)
+      for k in "${!seen[@]}"; do
+        printf '%s\n' "$k"
+      done | sort -u
+    executable: /bin/bash
+  register: _docker_nat_subnets
+  changed_when: false
+  failed_when: false
+
+- name: Apply Docker bridge egress NAT (nftables masquerade)
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      for m in nf_conntrack nf_nat nft_chain_nat nft_nat nft_masq; do
+        modprobe "$m" 2>/dev/null || true
+      done
+      if ! command -v nft >/dev/null 2>&1; then
+        echo "nft not found; install nftables" >&2
+        exit 1
+      fi
+      nft delete table ip ansible_docker_nat 2>/dev/null || true
+      nft add table ip ansible_docker_nat
+      nft add chain ip ansible_docker_nat postrouting '{ type nat hook postrouting priority 100; policy accept; }'
+      buf=$(cat || true)
+      if [ -z "${buf//[$'\t\r\n ']}" ]; then
+        buf=$'172.16.0.0/12'
+      fi
+      printf '%s\n' "$buf" | sort -u | while IFS= read -r raw; do
+        cidr="${raw//[$'\t\r\n ']}"
+        [ -z "$cidr" ] && continue
+        [[ "$cidr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || continue
+        nft add rule ip ansible_docker_nat postrouting ip saddr "$cidr" ip daddr != "$cidr" masquerade
+      done
+      echo CHANGED
+    executable: /bin/bash
+    stdin: "{{ _docker_nat_subnets.stdout | default('') }}"
+  register: _docker_nat_nft
+  changed_when: "'CHANGED' in (_docker_nat_nft.stdout | default(''))"
