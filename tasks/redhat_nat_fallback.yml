@@ -11,7 +11,7 @@
     lock_timeout: 300
   when: ansible_facts['os_family'] == 'RedHat'
 
-# One-line python avoids Docker Go `{{...}}` (Jinja conflict).
+# Subnet JSON parsing lives in files/docker_network_subnet_print.py (short shell lines for lint).
 - name: Discover Docker IPv4 subnets (dynamic)
   ansible.builtin.shell:
     cmd: |
@@ -26,7 +26,8 @@
           [ -z "${cidr:-}" ] && continue
           [[ "$cidr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || continue
           seen["$cidr"]=1
-        done < <(docker network inspect "$id" 2>/dev/null | python3 -c 'import json,sys; raw=sys.stdin.read(); data=json.loads(raw) if raw.strip() else []; [print(c["Subnet"]) for n in data for c in (n.get("IPAM") or {}).get("Config") or [] if c.get("Subnet")]' 2>/dev/null || true)
+        done < <(docker network inspect "$id" 2>/dev/null |
+          python3 "{{ role_path }}/files/docker_network_subnet_print.py" 2>/dev/null || true)
       done < <(docker network ls -q 2>/dev/null || true)
       for k in "${!seen[@]}"; do
         printf '%s\n' "$k"
