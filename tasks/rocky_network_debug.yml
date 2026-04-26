@@ -1,0 +1,22 @@
+---
+# Opt-in isolation for Rocky/EL + Docker when DNS or published ports misbehave (Molecule / lab).
+# Does not flush nftables by default — that wipes Docker-related tables and our NAT fallback;
+# set pihole_rocky_network_debug_flush_nft: true only if you will re-run the docker NAT tasks after.
+- name: Install bind-utils (dig) on host for DNS debugging
+  ansible.builtin.dnf:
+    name: bind-utils
+    state: present
+    lock_timeout: 300
+
+- name: Stop and disable firewalld (host firewall)
+  ansible.builtin.service:
+    name: firewalld
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Optionally flush entire nftables ruleset (nuclear; breaks tables until Docker/NAT re-applied)
+  ansible.builtin.command: nft flush ruleset
+  changed_when: true
+  failed_when: false
+  when: pihole_rocky_network_debug_flush_nft | default(false) | bool

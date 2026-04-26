@@ -1,0 +1,225 @@
+---
+- name: Check if Unbound container exists and is running
+  ansible.builtin.command:
+    cmd: docker inspect -f '{{ "{{" }}.State.Running{{ "}}" }}' "{{ unbound_container_name | default('unbound') }}"
+  register: unbound_running
+  changed_when: false
+  failed_when: false
+
+- name: Set fact if Unbound is running
+  ansible.builtin.set_fact:
+    pihole_unbound_present: "{{ (unbound_running.rc == 0) and (unbound_running.stdout | trim == 'true') }}"
+
+- name: Ensure shared external docker network exists (dns_net)
+  ansible.builtin.command:
+    cmd: docker network inspect "{{ pihole_network_name | default(pihole_unbound_network_name | default('dns_net')) }}"
+  register: dns_net_inspect
+  changed_when: false
+  failed_when: false
+  when: pihole_unbound_present
+
+- name: Create shared external docker network if missing
+  ansible.builtin.command:
+    cmd: docker network create "{{ pihole_network_name | default(pihole_unbound_network_name | default('dns_net')) }}"
+  register: dns_net_create
+  changed_when: dns_net_create.rc == 0
+  failed_when: dns_net_create.rc != 0
+  when: pihole_unbound_present and dns_net_inspect.rc != 0
+
+- name: Enable Pi-hole upstream to Unbound (set env vars)
+  ansible.builtin.set_fact:
+    pihole_environment_variables: >-
+      {{
+        (pihole_environment_variables | default({}))
+        | combine({
+            'PIHOLE_DNS_': (pihole_unbound_upstream | default('unbound#5335')),
+            'DNSMASQ_LISTENING': 'all'
+          }, recursive=True)
+      }}
+  when: pihole_unbound_present
+
+- name: Re-render docker-compose.yml for Pi-hole (with Unbound integration)
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ pihole_compose_file }}"
+    mode: "0644"
+  when: pihole_unbound_present
+
+- name: Apply compose changes (Pi-hole)
+  ansible.builtin.command:
+    cmd: docker compose -f "{{ pihole_compose_file }}" up -d
+  args:
+    chdir: "{{ pihole_compose_dir }}"
+  register: pihole_compose_up
+  changed_when: >
+    pihole_compose_up.stdout is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+    or pihole_compose_up.stderr is search('(?im)^(creating|recreating|starting|pulling|building)\\b')
+  failed_when: pihole_compose_up.rc != 0
+  when: pihole_unbound_present
+
+- name: Inspect Docker DNS network for attached containers
+  ansible.builtin.command:
+    argv:
+      - docker
+      - network
+      - inspect
+      - "{{ pihole_network_name | default(pihole_unbound_network_name | default('dns_net')) }}"
+  register: pihole_dns_net_json
+  changed_when: false
+  failed_when: pihole_dns_net_json.rc != 0
+  when: pihole_unbound_present
+
+- name: Derive names of containers on the shared DNS network
+  ansible.builtin.set_fact:
+    pihole_dns_net_container_names: >-
+      {{
+        (
+          (pihole_dns_net_json.stdout | from_json | first).Containers | default({})
+          | dict2items
+          | map(attribute='value.Name')
+          | map('regex_replace', '^/', '')
+          | list
+        )
+      }}
+  when: pihole_unbound_present
+
+- name: Assert Pi-hole and Unbound share the same Docker network
+  ansible.builtin.assert:
+    that:
+      - (pihole_container_name | default('pihole')) in pihole_dns_net_container_names
+      - (unbound_container_name | default('unbound')) in pihole_dns_net_container_names
+    fail_msg: >-
+      Pi-hole is configured to use Unbound upstream, but both containers must be attached to Docker network
+      '{{ pihole_network_name | default(pihole_unbound_network_name | default('dns_net')) }}'.
+      Attached: {{ pihole_dns_net_container_names | default([]) }}.
+      Set inventory var pihole_network_name to match unbound_network_name and ensure docker-compose.yml.j2 attaches Pi-hole to that network.
+  when: pihole_unbound_present
+
+- name: From host, verify Unbound answers on published loopback port (if enabled)
+  ansible.builtin.command:
+    argv:
+      - dig
+      - -p
+      - "{{ unbound_publish_host_port | default(unbound_port | default(5335)) | string }}"
+      - +short
+      - +time=3
+      - +tries=2
+      - "{{ pihole_unbound_verify_qname | default('cloudflare.com') }}"
+      - "@127.0.0.1"
+  register: pihole_host_unbound_dig
+  changed_when: false
+  failed_when: false
+  when:
+    - pihole_unbound_present
+    - unbound_publish_to_host | default(false) | bool
+
+- name: Set docker inspect format
+  ansible.builtin.set_fact:
+    docker_inspect_networks_fmt: "{{ '{{json .NetworkSettings.Networks}}' }}"
+  when: pihole_unbound_present
+
+- name: Inspect Unbound container networks
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - --format
+      - "{{ docker_inspect_networks_fmt }}"
+      - "{{ unbound_container_name | default('unbound') }}"
+  register: unbound_net_json
+  changed_when: false
+  failed_when: unbound_net_json.rc != 0
+  when: pihole_unbound_present
+
+- name: Set Unbound container primary IPv4 for host-side dig
+  ansible.builtin.set_fact:
+    pihole_unbound_container_ipv4: >-
+      {{
+        (
+          unbound_net_json.stdout | from_json
+          | dict2items
+          | map(attribute='value.IPAddress')
+          | reject('equalto', '')
+          | list
+          | first
+          | default('', true)
+        )
+      }}
+  when: pihole_unbound_present
+
+- name: From host, dig Unbound on its container IPv4
+  ansible.builtin.command:
+    argv:
+      - dig
+      - -p
+      - "{{ unbound_port | default(5335) | string }}"
+      - +short
+      - +time=3
+      - +tries=2
+      - "{{ pihole_unbound_verify_qname }}"
+      - "@{{ pihole_unbound_container_ipv4 }}"
+  register: pihole_host_unbound_dig_bridge
+  changed_when: false
+  failed_when: >
+    (pihole_host_unbound_dig_bridge.stdout_lines | default([])
+    | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+    | list | length) == 0
+  when:
+    - pihole_unbound_present
+    - pihole_unbound_container_ipv4 | default('') | length > 0
+
+# Wait for Pi-hole to be ready
+- name: Wait until Pi-hole is healthy
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - -f
+      - "{{ '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' }}"
+      - "{{ pihole_container_name | default('pihole') }}"
+  register: pihole_health
+  retries: 30
+  delay: 2
+  until: (pihole_health.stdout | default('', true) | trim) in ['healthy', 'none']
+  changed_when: false
+  when: pihole_unbound_present
+
+# Docker embedded DNS (127.0.0.11) resolves service names on user-defined networks; getent is unreliable in minimal images.
+- name: Verify Pi-hole can resolve Unbound via Docker embedded DNS
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc 'dig +short {{ unbound_container_name | default("unbound") }} @127.0.0.11 +tries=2 +time=3'
+  register: pihole_resolve_unbound
+  changed_when: false
+  failed_when: >
+    (pihole_resolve_unbound.stdout_lines
+      | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+      | list
+      | length) == 0
+  when: pihole_unbound_present
+
+- name: Verify Unbound answers DNS queries (from Pi-hole container)
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc "dig @{{ unbound_container_name | default('unbound') }} -p {{ unbound_port | default(5335) }} {{ pihole_unbound_verify_qname }} +short"
+  register: unbound_dns_test
+  changed_when: false
+  failed_when: >
+    (unbound_dns_test.stdout_lines
+      | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+      | list
+      | length) == 0
+  when: pihole_unbound_present
+
+- name: Verify Pi-hole answers DNS queries (through its local DNS)
+  ansible.builtin.command: >
+    docker exec {{ pihole_container_name | default('pihole') }}
+    sh -lc "dig @127.0.0.1 -p 53 {{ pihole_unbound_verify_qname }} +short"
+  register: pihole_dns_test
+  changed_when: false
+  failed_when: >
+    (pihole_dns_test.stdout_lines
+      | select('match', '^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$')
+      | list
+      | length) == 0
+  when: pihole_unbound_present

@@ -2,8 +2,32 @@
 ---
 # defaults file for docker-pihole
 # Full list can be found here https://hub.docker.com/r/pihole/pihole
+#
+# Host layout: persistent dirs live under dir_loc (etc/pihole, etc/dnsmasq.d). Compose
+# defaults to the same tree. Inventory usually sets pihole_compose_dir; tasks/main.yml
+# aligns dir_loc so volume paths match the playbook.
 dir_loc: '/opt/pihole'
-firewall_deploy: true
+pihole_compose_dir: "{{ dir_loc }}"
+firewall_deploy: false
+
+# EL Docker NAT fallback after compose (see tasks/redhat_nat_fallback.yml); match ansible-pihole docker role.
+docker_manage_iptables: true
+docker_el_nat_fallback: true
+
+# Opt-in Rocky/EL lab mode: stop firewalld, install bind-utils (dig on the host), run Pi-hole
+# container privileged with relaxed seccomp/SELinux labels. Molecule default scenario sets this
+# in molecule/default/group_vars/all.yml — unset for production.
+pihole_rocky_network_debug: false
+# Only used when pihole_rocky_network_debug — flushes all nft rules (see rocky_network_debug.yml).
+pihole_rocky_network_debug_flush_nft: false
+
+# Use host networking for the Pi-hole container (bypasses Docker bridge/NAT entirely).
+# Helpful for Rocky/Vagrant debugging when published 53/udp or bridge DNS is unreliable.
+pihole_use_host_network: false
+
+# When true on Debian/Ubuntu, disable systemd-resolved stub DNS so host port 53 can be used
+# by Docker (Pi-hole publish). Independent of firewalld — do not tie this to firewall_deploy.
+pihole_configure_systemd_resolved: true
 pihole_environment_variables:
   # Set the appropriate timezone for your location (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), e.g:
   TZ: 'Europe/London'
@@ -19,3 +43,20 @@ pihole_environment_variables:
 
 webport_http: '80'
 webport_https: '443'
+# Compose paths
+pihole_compose_file: "{{ pihole_compose_dir }}/docker-compose.yml"
+
+# Container name (used by unbound.yml checks)
+pihole_container_name: "pihole"
+
+# Docker Compose `dns:` for the Pi-hole service — written into the container's resolv.conf.
+# Public DNS first: with Docker `"iptables": false"` (common on EL/Vagrant), 127.0.0.11 is often
+# refused; gravity needs resolvers that work. Keep 127.0.0.11 last so Docker hostnames (e.g.
+# unbound) still resolve after earlier servers return NXDOMAIN. Set to [] to omit `dns:`.
+pihole_docker_dns:
+  - "8.8.8.8"
+  - "8.8.4.4"
+  - "127.0.0.11"
+
+# QNAME used in Unbound integration checks (from host / from Pi-hole container)
+pihole_unbound_verify_qname: "cloudflare.com"
