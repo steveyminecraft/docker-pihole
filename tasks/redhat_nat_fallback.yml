@@ -19,7 +19,6 @@
     dest: "{{ pihole_compose_dir }}/docker_network_subnet_print.py"
     mode: "0755"
   when: ansible_facts['os_family'] == 'RedHat'
-
 - name: Discover Docker IPv4 subnets (dynamic)
   ansible.builtin.shell:
     cmd: |
@@ -35,6 +34,7 @@
           [ -z "${cidr:-}" ] && continue
           [[ "$cidr" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]] || continue
           seen["$cidr"]=1
+        done < <(docker network inspect "$id" 2>/dev/null | python3 "$H" 2>/dev/null || true)
         done < <(docker network inspect "$id" 2>/dev/null | python3 "$H" 2>/dev/null || true)
       done < <(docker network ls -q 2>/dev/null || true)
       for k in "${!seen[@]}"; do
