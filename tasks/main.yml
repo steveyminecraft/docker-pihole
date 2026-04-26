@@ -4,6 +4,18 @@
   ansible.builtin.set_fact:
     pihole_environment_variables: "{{ vars_pihole_environment_variables | default({}) | combine(pihole_environment_variables, recursive=True) }}"
 
+# Inventory often sets pihole_compose_dir only; pre.yml and docker volumes use dir_loc.
+# Keep a single effective root so bind-mount paths match compose and deploypi chdir.
+- name: Align dir_loc with pihole_compose_dir from inventory
+  ansible.builtin.set_fact:
+    dir_loc: "{{ pihole_compose_dir | default(dir_loc | default('/opt/pihole')) }}"
+
+# Inventory often sets pihole_firewall_deploy; role tasks use firewall_deploy.
+- name: Honor inventory pihole_firewall_deploy for firewall_deploy
+  ansible.builtin.set_fact:
+    firewall_deploy: "{{ pihole_firewall_deploy | bool }}"
+  when: pihole_firewall_deploy is defined
+
 - name: Debian setup tasks
   ansible.builtin.include_tasks: debian.yml
   when: ansible_facts['distribution'] in ['Debian', 'Ubuntu']
@@ -12,8 +24,12 @@
   ansible.builtin.include_tasks: redhat.yml
   when: ansible_facts['distribution'] in ['Rocky', 'Red Hat Enterprise Linux']
 
-- name: Run pre-deployment tasks
-  ansible.builtin.include_tasks: pre.yml
+- name: Rocky networking debug (firewall off, dig on host, privileged container — opt-in)
+  ansible.builtin.include_tasks: rocky_network_debug.yml
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - ansible_facts['distribution'] in ['Rocky', 'Red Hat Enterprise Linux']
+    - pihole_rocky_network_debug | default(false) | bool
 
 - name: Deploy Pi-hole container
   ansible.builtin.include_tasks: deploypi.yml
@@ -24,6 +40,7 @@
 
 - name: Added Unbound
   ansible.builtin.include_tasks: unbound.yml
+  when: not (pihole_use_host_network | default(false) | bool)
 
 - name: Verify Pi-hole deployment
   ansible.builtin.include_tasks: verify.yml
