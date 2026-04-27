@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: MIT-0
+---
+ansible_python_interpreter: auto_silent
+# ansible.cfg sets inject_facts_as_vars=false; set connection user explicitly for owner/group in tasks.
+ansible_user: root
+
+# Paths must exist on the instance; same paths are used for compose bind mounts.
+dir_loc: /var/tmp/molecule-docker-pihole
+pihole_compose_dir: "{{ dir_loc }}"
+pihole_container_name: molecule-pihole
+# Published host ports (role defaults are not auto-loaded for standalone verify play).
+webport_http: "80"
+webport_https: "443"
+firewall_deploy: false
+# Geerlingguy systemd test image has no systemd-resolved package; skip stub-DNS tweaks.
+pihole_configure_systemd_resolved: false
+
+# Narrow test surface inside the container.
+pihole_image: pihole/pihole:latest
+pihole_environment_variables:
+  TZ: UTC
+  FTLCONF_webserver_api_password: molecule-test
+  FTLCONF_dns_listeningMode: ALL
+  DHCP_ACTIVE: "false"
+  REV_SERVER: "false"
+  REV_SERVER_CIDR: "192.168.56.0/24"
+  REV_SERVER_TARGET: "192.168.56.1"
