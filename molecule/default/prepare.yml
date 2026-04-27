@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Privileged Docker-in-Docker: overlay graph driver often fails nested; vfs works (slower, test-only).
+- name: Prepare instance (Docker engine + tools for the role)
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Install Docker, Compose v2, and verify tooling
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - docker.io
+          - docker-compose-v2
+          - dnsutils
+          - python3-docker
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Stop Docker before reconfiguring storage (if running)
+      ansible.builtin.service:
+        name: docker
+        state: stopped
+      failed_when: false
+
+    - name: Remove Docker graph dir so vfs migration is clean (ephemeral Molecule instance only)
+      ansible.builtin.file:
+        path: /var/lib/docker
+        state: absent
+
+    - name: Configure Docker to use vfs storage driver for nested containers
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {"storage-driver": "vfs"}
+        mode: '0644'
+
+    - name: Ensure Docker daemon is enabled and running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true

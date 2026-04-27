@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Collections are installed via scripts/install-ansible-collections.sh or pip bundles; skip Galaxy here
+# (avoids molecule treating requirements.yml as a roles file).
+dependency:
+  name: galaxy
+  enabled: false
+
+driver:
+  name: docker
+
+platforms:
+  # Systemd + privileged Docker-in-Docker so deploypi.yml can manage the docker service and run Pi-hole.
+  - name: instance
+    image: geerlingguy/docker-ubuntu2404-ansible:latest
+    pre_build_image: true
+    privileged: true
+    cgroupns_mode: host
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  env:
+    # molecule/ansible.cfg: deprecation off + allow_broken for molecule_docker 2.1 create/destroy playbooks.
+    ANSIBLE_CONFIG: "${MOLECULE_PROJECT_DIRECTORY}/molecule/ansible.cfg"
+    ANSIBLE_ROLES_PATH: "${MOLECULE_PROJECT_DIRECTORY}/..:${MOLECULE_PROJECT_DIRECTORY}"
+
+verifier:
+  name: ansible
+
+scenario:
+  name: default
+  # deploypi.yml always restarts docker; skip idempotence. Lint runs in CI (ansible-lint).
+  test_sequence:
+    - destroy
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
