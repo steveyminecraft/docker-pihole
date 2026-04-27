@@ -25,3 +25,4 @@ ignore:
   - .venv
   - venv
   - tests/example.inventory.yaml
+  - README.md
