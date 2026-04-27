@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: MIT-0
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Include role verify tasks (container + DNS checks)
+      ansible.builtin.include_tasks: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/tasks/verify.yml"
+
+    - name: Pi-hole admin UI responds over HTTP (published webport)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ webport_http | int }}/admin/"
+        method: GET
+        follow_redirects: all
+        return_content: true
+        status_code: [200, 301, 302, 303, 307, 308]
+      register: pihole_admin_http
+      retries: 15
+      delay: 4
+      until: (pihole_admin_http.status | default(-1) | int) in [200, 301, 302, 303, 307, 308]
+
+    - name: Assert Pi-hole web UI markup is present
+      ansible.builtin.assert:
+        that:
+          - >-
+            'Pi-hole' in (pihole_admin_http.content | default(''))
+            or 'pi-hole' in ((pihole_admin_http.content | default('')) | lower)
+        fail_msg: >-
+          HTTP admin on port {{ webport_http }} did not return expected Pi-hole UI
+          (HTTP {{ pihole_admin_http.status | default('?') }}).
+        success_msg: Pi-hole admin UI is reachable over HTTP on port {{ webport_http }}.
+
+    - name: Pi-hole admin UI over HTTPS (optional; published HTTPS webport)
+      ansible.builtin.uri:
+        url: "https://127.0.0.1:{{ webport_https | int }}/admin/"
+        method: GET
+        follow_redirects: all
+        validate_certs: false
+        return_content: true
+        status_code: [200, 301, 302, 303, 307, 308]
+      register: pihole_admin_https
+      failed_when: false
+      changed_when: false
+
+    - name: Assert Pi-hole HTTPS admin when TLS is listening
+      ansible.builtin.assert:
+        that:
+          - (pihole_admin_https.status | int) in [200, 301, 302, 303, 307, 308]
+          - >-
+            'Pi-hole' in (pihole_admin_https.content | default(''))
+            or 'pi-hole' in ((pihole_admin_https.content | default('')) | lower)
+        success_msg: Pi-hole admin UI is reachable over HTTPS on port {{ webport_https }}.
+      when: pihole_admin_https.status is defined
