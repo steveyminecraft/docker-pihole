@@ -1,7 +1,7 @@
 ---
-# Same layout as ansible-pihole: lint job, then syntax/tests. This repo is a single role
-# at the root (no roles/ playbooks/ tree); ansible-lint target is the project directory.
-name: CI - docker-pihole
+# Same layout as ansible-pihole: lint job, then syntax/tests. This repo is a single
+# role at the root, so ansible-lint targets the project directory.
+name: CI - Docker-Pihole Checks
 
 "on":
   push:
@@ -16,7 +16,13 @@ name: CI - docker-pihole
   workflow_dispatch:
 
 env:
-  python_version: "3.14"
+  # Track the newest supported CPython on GitHub runners.
+  python_version: "3.x"
+  # Opt into Node.js 24 for GitHub Actions (silences Node 20 deprecation warnings).
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -37,10 +43,7 @@ jobs:
       - name: Install tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install \
-            "ansible-core==2.20.5" \
-            "ansible-lint==26.4.0" \
-            "yamllint==1.38.0"
+          python -m pip install --upgrade ansible-core ansible-lint yamllint
 
       - name: Install Galaxy roles and collections
         run: ./scripts/install-ansible-collections.sh
@@ -56,8 +59,8 @@ jobs:
       - name: YAML lint
         run: yamllint .
 
-  # Same job id/name as ansible-pihole; that repo also runs bootstrap --check here.
-  # This role does not run --check in CI (needs Docker / target host); use tests/local-test.yml locally.
+  # Same job id/name as ansible-pihole. This role does not run --check in CI
+  # because it needs Docker / a target host; use tests/local-test.yml locally.
   ansible-tests-ubuntu:
     name: Ansible syntax & dry-run
     runs-on: ubuntu-latest
@@ -75,7 +78,7 @@ jobs:
       - name: Install Ansible
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "ansible-core==2.20.5"
+          python -m pip install --upgrade ansible-core
 
       - name: Show Ansible version
         run: ansible --version
