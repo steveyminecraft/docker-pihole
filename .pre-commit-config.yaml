@@ -1,5 +1,5 @@
 ---
-# Mirror CI: .github/workflows/ci.yml (pip versions pinned there; align when bumping).
+# Mirror CI: .github/workflows/ci.yml.
 repos:
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.37.1
