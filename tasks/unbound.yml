@@ -32,8 +32,8 @@
       {{
         (pihole_environment_variables | default({}))
         | combine({
-            'PIHOLE_DNS_': (pihole_unbound_upstream | default('unbound#5335')),
-            'DNSMASQ_LISTENING': 'all'
+            'FTLCONF_dns_upstreams': (pihole_unbound_upstream | default('unbound#5335')),
+            'FTLCONF_dns_listeningMode': 'all'
           }, recursive=True)
       }}
   when: pihole_unbound_present
