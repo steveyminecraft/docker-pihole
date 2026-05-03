@@ -36,6 +36,24 @@ Authoritative defaults are in [`defaults/main.yml`](defaults/main.yml). Commonly
 
 Inventory may set a `timezone` variable and pass `TZ: "{{ timezone }}"` inside `pihole_environment_variables` (see `tests/local-test.yml`).
 
+### Unbound integration
+
+When an Unbound container is already running, `tasks/unbound.yml` can attach Pi-hole to the shared Docker network and point Pi-hole at Unbound. For Pi-hole v6, the role sets the upstream with `FTLCONF_dns_upstreams`; the older `PIHOLE_DNS_` variable is no longer used.
+
+Typical inventory values:
+
+```yaml
+unbound_network_name: dns_net
+pihole_network_name: "{{ unbound_network_name }}"
+unbound_container_name: unbound
+unbound_port: 5335
+pihole_unbound_upstream: "{{ unbound_container_name }}#{{ unbound_port }}"
+
+pihole_environment_variables:
+  FTLCONF_dns_upstreams: "{{ pihole_unbound_upstream }}"
+  FTLCONF_dns_listeningMode: "all"
+```
+
 ### Rocky / EL + Docker NAT
 
 On EL9+ guests, Docker sometimes runs with `iptables: false`, so bridge egress needs extra NAT. This role can apply an nftables masquerade fallback after `docker compose up` when `docker_manage_iptables` is false and `docker_el_nat_fallback` is true. Optional lab tuning: `pihole_rocky_network_debug`, `pihole_use_host_network` (see `defaults/main.yml` and task comments).
