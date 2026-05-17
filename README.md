@@ -2,7 +2,7 @@
 
 Ansible role to deploy [Pi-hole](https://pi-hole.net/) using Docker Compose on the target host. The role writes `docker-compose.yml`, pulls the image, manages optional firewalld rules, and can integrate with Unbound on a shared Docker network.
 
-Galaxy role: [`steveyminecraft.docker-pihole`](https://galaxy.ansible.com/ui/standalone/roles/steveyminecraft/docker-pihole/). Install into `roles/pihole` with:
+Galaxy role: [`steveyminecraft.docker-pihole`](https://galaxy.ansible.com/ui/standalone/roles/steveyminecraft/docker-pihole/) (`role_name` **`pihole`** in `meta/main.yml`; Galaxy listing name **`docker-pihole`**). Install into `roles/pihole` with:
 
 ```bash
 ansible-galaxy install steveyminecraft.docker-pihole,v1.0.0 -p roles --roles-path roles -f pihole
