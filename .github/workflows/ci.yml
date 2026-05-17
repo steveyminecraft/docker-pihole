@@ -43,7 +43,11 @@ jobs:
       - name: Install tooling
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --upgrade ansible-core ansible-lint yamllint
+          python -m pip install -r requirements-ci.txt
+
+      - name: Validate role metadata for Ansible Galaxy
+        run: |
+          python -m galaxy_importer.main --legacy-role --namespace steveyminecraft "${GITHUB_REPOSITORY#*/}"
 
       - name: Install Galaxy roles and collections
         run: ./scripts/install-ansible-collections.sh
