@@ -47,6 +47,7 @@ jobs:
 
       - name: Validate role metadata for Ansible Galaxy
         run: |
+          cd ..
           python -m galaxy_importer.main --legacy-role --namespace steveyminecraft "${GITHUB_REPOSITORY#*/}"
 
       - name: Install Galaxy roles and collections
