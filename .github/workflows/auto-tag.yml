@@ -1,0 +1,84 @@
+---
+name: Auto-tag on master
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-tag-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create version tag
+    runs-on: ubuntu-24.04
+    if: >-
+      !contains(github.event.head_commit.message, '[skip tag]')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Skip if commit already has a tag
+        id: check
+        run: |
+          if git describe --exact-match --tags HEAD 2>/dev/null; then
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+            git describe --exact-match --tags HEAD
+          else
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Determine next version tag
+        if: steps.check.outputs.skip != 'true'
+        id: version
+        env:
+          INITIAL_TAG: v1.0.0
+        run: |
+          python3 <<'PY'
+          import os
+          import re
+          import subprocess
+
+          initial = os.environ["INITIAL_TAG"]
+
+          def parse_version(tag: str):
+              match = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", tag)
+              if not match:
+                  return None
+              return tuple(int(value) for value in match.groups())
+
+          tags = subprocess.check_output(
+              ["git", "tag", "-l", "v*", "--sort=-v:refname"],
+              text=True,
+          ).strip().splitlines()
+
+          latest = next((tag for tag in tags if parse_version(tag)), None)
+          new_tag = initial if latest is None else None
+
+          if latest is not None:
+              major, minor, patch = parse_version(latest)
+              new_tag = f"v{major}.{minor}.{patch + 1}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+              handle.write(f"tag={new_tag}\n")
+
+          print(f"Latest tag: {latest or 'none'}")
+          print(f"Next tag: {new_tag}")
+          PY
+
+      - name: Create and push tag
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" \
+            -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"

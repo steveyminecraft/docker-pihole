@@ -1,0 +1,29 @@
+---
+name: Publish to Ansible Galaxy
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: galaxy-publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Import role
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Import role into Ansible Galaxy
+        uses: ./.github/actions/import-galaxy-role
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}
