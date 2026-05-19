@@ -123,19 +123,33 @@ Molecule uses [`molecule/ansible.cfg`](molecule/ansible.cfg) (not the repo root 
 
 ### Releases and Ansible Galaxy
 
+Releases and **git tags** are only created from **`master`** (not `dev` or topic branches).
+
+Uses **[release-please](https://github.com/googleapis/release-please)** (aligned with [ansible-pihole](https://github.com/steveyminecraft/ansible-pihole)):
+
+1. Land work on **`dev`**, then open a PR **`dev` → `master`** and merge.
+2. That push to **`master`** makes release-please open or update a **Release PR** (changelog + version bump).
+3. Merge the **Release PR** into **`master`** to create the **git tag** (`v*.*.*`), **GitHub release**, and **Galaxy role import**.
+
+This repository stays a **standalone Galaxy role** (`steveyminecraft.docker-pihole`); it is **not** published as an Ansible collection. The [ansible-pihole](https://github.com/steveyminecraft/ansible-pihole) collection vendors a copy as `steveyminecraft.pihole.pihole` for all-in-one installs; you can still install and version this role directly from Galaxy.
+
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| [Auto-tag on master](.github/workflows/auto-tag.yml) | Push to `master` | Creates the next `v*.*.*` tag (starts at `v1.0.0`) |
-| [Publish to Ansible Galaxy](.github/workflows/galaxy-publish.yml) | Push to `master`, manual | Imports `steveyminecraft.docker-pihole` from the latest `master` commit |
-| [Release](.github/workflows/release.yml) | Tag `v*`, manual | GitHub release plus Galaxy import for that tag |
+| [Release](.github/workflows/release-please.yml) | Push to `master` only | Release PR; tag + GitHub release + Galaxy import when the Release PR merges |
+| [Validate role for Ansible Galaxy](.github/workflows/galaxy-publish.yml) | Push/PR to `master`, manual | Runs `galaxy-importer` on the legacy role |
 
 Setup:
 
-1. Create a [Galaxy](https://galaxy.ansible.com) account linked to GitHub.
-2. Add repository secret **`GALAXY_API_KEY`** (Galaxy → Preferences → API Key).
-3. Merge to **`master`** — CI tags `v1.0.0` (then `v1.0.1`, …) and imports the role; tagged releases appear as installable versions (`ansible-galaxy install steveyminecraft.docker-pihole,v1.0.0`).
+1. Add repository secret **`GALAXY_API_KEY`** (Galaxy → Preferences → API Key).
+2. Enable **Allow GitHub Actions to create and approve pull requests** (Settings → Actions → General).
 
-Skip auto-tagging with `[skip tag]` in the commit message.
+**Install a tagged version:**
+
+```bash
+ansible-galaxy install steveyminecraft.docker-pihole,v1.0.2
+```
+
+See [GitHub releases](https://github.com/steveyminecraft/docker-pihole/releases) and [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
