@@ -1,0 +1,58 @@
+---
+# Releases and tags are only produced from the master branch.
+# Typical flow: merge topic → dev → PR dev → master (opens/updates a Release PR) →
+# merge Release PR → tag v*.*.*, GitHub release, Galaxy role import.
+name: Release
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release please
+    if: >-
+      github.repository_owner == 'steveyminecraft'
+      && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@a37ac6e4f6449ce8b3f7607e4d97d0146028dc0b # v4.1.0
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-galaxy:
+    name: Import role to Ansible Galaxy
+    needs: release-please
+    if: >-
+      needs.release-please.outputs.release_created == 'true'
+      && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out repository at release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Import steveyminecraft.docker-pihole
+        uses: ./.github/actions/import-galaxy-role
+        with:
+          role-name: docker-pihole
+        env:
+          GALAXY_API_KEY: ${{ secrets.GALAXY_API_KEY }}

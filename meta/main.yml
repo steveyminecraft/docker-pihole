@@ -1,21 +1,35 @@
 ---
 galaxy_info:
+  namespace: steveyminecraft
   role_name: pihole
-  author: richardlaing00
-  description: Deploy Pi-hole using Docker
+  author: steveyminecraft
+  description: Deploy Pi-hole using Docker (Pi-hole v6, optional Unbound upstream)
+  issue_tracker_url: https://github.com/steveyminecraft/docker-pihole/issues
+
   license: MIT
-  min_ansible_version: "2.14"
+
+  min_ansible_version: "2.20"
+  github_branch: master
   platforms:
     - name: Ubuntu
-      versions: ["all"]
+      versions:
+        - jammy
+        - noble
     - name: Debian
-      versions: ["all"]
+      versions:
+        - bookworm
+        - trixie
     - name: EL
-      versions: ["all"]
+      versions:
+        - "9"
+        - "10"
+
   galaxy_tags:
     - pihole
     - docker
     - dns
     - adblock
+    - unbound
+    - networking
 
 dependencies: []
