@@ -1,0 +1,4 @@
+ansible-core>=2.20.5,<2.21
+ansible-lint
+yamllint
+galaxy-importer

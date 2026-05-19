@@ -2,19 +2,19 @@
 # Mirror CI: .github/workflows/ci.yml.
 repos:
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: [-c, .yamllint]
 
   - repo: https://github.com/ansible/ansible-lint
-    rev: v25.12.1
+    rev: v26.4.0
     hooks:
       - id: ansible-lint
         args: [-p, .]
         always_run: true
         pass_filenames: false
         additional_dependencies:
-          - ansible-core==2.20.1
+          - ansible-core==2.20.5
         env:
           ANSIBLE_CONFIG: ansible.cfg
