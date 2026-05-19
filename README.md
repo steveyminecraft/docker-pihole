@@ -131,7 +131,7 @@ Uses **[release-please](https://github.com/googleapis/release-please)** (aligned
 2. That push to **`master`** makes release-please open or update a **Release PR** (changelog + version bump).
 3. Merge the **Release PR** into **`master`** to create the **git tag** (`v*.*.*`), **GitHub release**, and **Galaxy role import**.
 
-The Pi-hole role is also vendored in the **`steveyminecraft.pihole`** collection; new deployments should prefer `ansible-galaxy collection install steveyminecraft.pihole`.
+This repository stays a **standalone Galaxy role** (`steveyminecraft.docker-pihole`); it is **not** published as an Ansible collection. The [ansible-pihole](https://github.com/steveyminecraft/ansible-pihole) collection vendors a copy as `steveyminecraft.pihole.pihole` for all-in-one installs; you can still install and version this role directly from Galaxy.
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
