@@ -2,11 +2,17 @@
 
 Ansible role to deploy [Pi-hole](https://pi-hole.net/) using Docker Compose on the target host. The role writes `docker-compose.yml`, pulls the image, manages optional firewalld rules, and can integrate with Unbound on a shared Docker network.
 
-Galaxy `role_name` is **`pihole`** (`meta/main.yml`); this repository is commonly cloned as **`docker-pihole`** and referenced with `ANSIBLE_ROLES_PATH` so the role name matches the directory (see `tests/syntax-check.yml`).
+Galaxy role: [`steveyminecraft.docker-pihole`](https://galaxy.ansible.com/ui/standalone/roles/steveyminecraft/docker-pihole/) (`role_name` **`pihole`** in `meta/main.yml`; Galaxy listing name **`docker-pihole`**). Install into `roles/pihole` with:
+
+```bash
+ansible-galaxy install steveyminecraft.docker-pihole,v1.0.0 -p roles --roles-path roles -f pihole
+```
+
+Or in `requirements.yml`: `src: steveyminecraft.docker-pihole`, `version: "1.0.0"`, `name: pihole`.
 
 ## Requirements
 
-- **Ansible**: 2.14 or newer (`meta/main.yml`).
+- **Ansible**: 2.20 or newer (`meta/main.yml`).
 - **Target host**: Docker Engine and **Docker Compose v2** (`docker compose` CLI). The role **does not** install Docker; install it beforehand (for example with your playbooks or another role).
 - **Collections**: install from `requirements.yml` (includes `ansible.posix` and `community.docker`), for example:
 
@@ -114,6 +120,36 @@ molecule test
 ```
 
 Molecule uses [`molecule/ansible.cfg`](molecule/ansible.cfg) (not the repo root `ansible.cfg`) so driver playbooks remain compatible with **Ansible 2.20+** strict conditionals.
+
+### Releases and Ansible Galaxy
+
+Releases and **git tags** are only created from **`master`** (not `dev` or topic branches).
+
+Uses **[release-please](https://github.com/googleapis/release-please)** (aligned with [ansible-pihole](https://github.com/steveyminecraft/ansible-pihole)):
+
+1. Land work on **`dev`**, then open a PR **`dev` → `master`** and merge.
+2. That push to **`master`** makes release-please open or update a **Release PR** (changelog + version bump).
+3. Merge the **Release PR** into **`master`** to create the **git tag** (`v*.*.*`), **GitHub release**, and **Galaxy role import**.
+
+The Pi-hole role is also vendored in the **`steveyminecraft.pihole`** collection; new deployments should prefer `ansible-galaxy collection install steveyminecraft.pihole`.
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| [Release](.github/workflows/release-please.yml) | Push to `master` only | Release PR; tag + GitHub release + Galaxy import when the Release PR merges |
+| [Validate role for Ansible Galaxy](.github/workflows/galaxy-publish.yml) | Push/PR to `master`, manual | Runs `galaxy-importer` on the legacy role |
+
+Setup:
+
+1. Add repository secret **`GALAXY_API_KEY`** (Galaxy → Preferences → API Key).
+2. Enable **Allow GitHub Actions to create and approve pull requests** (Settings → Actions → General).
+
+**Install a tagged version:**
+
+```bash
+ansible-galaxy install steveyminecraft.docker-pihole,v1.0.2
+```
+
+See [GitHub releases](https://github.com/steveyminecraft/docker-pihole/releases) and [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 

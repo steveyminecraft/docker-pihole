@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "include-component-in-tag": false,
+      "changelog-path": "CHANGELOG.md"
+    }
+  },
+  "pull-request-title-pattern": "chore: release ${version}",
+  "pull-request-footer": "Merge this PR into master to create the git tag, GitHub release, and import steveyminecraft.docker-pihole on Ansible Galaxy. Feature work should land on master via dev first."
+}
